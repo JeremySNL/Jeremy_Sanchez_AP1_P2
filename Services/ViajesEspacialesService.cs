@@ -3,7 +3,7 @@ using Jeremy_Sanchez_AP1_P2.DAL;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
-namespace Jeremy_Sanchez_AP1_P1.Services;
+namespace Jeremy_Sanchez_AP1_P2.Services;
 
 public class ViajesEspacialesService(IDbContextFactory<Contexto> DbFactory)
 {

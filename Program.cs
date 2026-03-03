@@ -1,10 +1,22 @@
+using Jeremy_Sanchez_AP1_P1.Services;
 using Jeremy_Sanchez_AP1_P2.Components;
+using Jeremy_Sanchez_AP1_P2.DAL;
+//using Jeremy_Sanchez_AP1_P1.Services;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+// Obtenemos el ConStr para usarlo en el contexto
+var ConStr = builder.Configuration.GetConnectionString("SqlConStr");
+
+// Agregamos el contexto al builder con el ConStr
+builder.Services.AddDbContextFactory<Contexto>(o => o.UseSqlServer(ConStr));
+
+builder.Services.AddScoped<ViajesEspacialesService>();
 
 builder.Services.AddBlazorBootstrap();
 

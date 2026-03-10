@@ -1,0 +1,147 @@
+﻿@page "/AsignacionesPuntos/Index"
+
+@inject NavigationManager navigationManager;
+@inject AsignacionesPuntosService asignacionesPuntosService;
+@inject EstudiantesService estudiantesService;
+
+<div class="container">
+    <div class="card shadow-lg">
+        <div class="card-header d-flex justify-content-between p-3">
+            <h3>Asignaciones de Puntos</h3>
+            <a class="btn btn-primary" href="/AsignacionesPuntos/Create"><span class="bi bi-plus-square"></span> Crear</a>
+        </div>
+        <div class="card-body">
+
+            @* Filtro por fechas *@
+            <div class="row">
+                <div class="col-3">
+                    <label class="form-label">Desde</label>
+                </div>
+                <div class="col-3">
+                    <label class="form-label">Hasta</label>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-3">
+                    <input class="form-control" type="datetime-local" @bind-value="FechaDesde"/>
+                </div>
+                <div class="col-3">
+                    <input class="form-control" type="datetime-local" @bind-value="FechaHasta"/>
+                </div>
+            </div>
+
+            @* Busqueda y filtro *@
+            <div class="row">
+                <div class="col-3">
+                    <label class="form-label">Filtro</label>
+                </div>
+                <div class="col-4">
+                    <label class="form-label">B&uacute;squeda</label>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-3">
+                    <select class="form-select" @bind="Filtro">
+                        <option value="Estudiante" selected>Estudiante</option>
+                    </select>
+                </div>
+                <div class="col-4">
+                    <div class="input-group">
+                        <select class="form-select" @bind="ValorFiltro">
+                            <option value="0" selected>Nadie</option>
+                            @foreach (var estudiante in ListaEstudiantes)
+                            {
+                                <option value="@estudiante.EstudianteId">@estudiante.Nombres</option>
+                            }
+                        </select>
+                        <button class="btn btn-outline-primary bi bi-search" @onclick="Filtrar"></button>
+                    </div>
+                </div>
+            </div>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Id</th>
+                        <th>Fecha</th>
+                        <th>Estudiante</th>
+                        <th>Total de Puntos</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var asignacion in ListaAsignaciones)
+                    {
+                        <tr>
+                            <td>@asignacion.AsignacionId</td>
+                            <td>@asignacion.Fecha</td>
+                            <td>@ListaEstudiantes.Find(e => e.EstudianteId == asignacion.EstudianteId).Nombres</td>
+                            <td>@asignacion.TotalPuntos</td>
+                            <td>
+                                <a class="btn btn-outline-primary" href="/AsignacionesPuntos/Edit/@asignacion.AsignacionId"><span class="bi bi-pencil-square"></span></a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer p-3 d-flex justify-content-between">
+            <label><strong>Cantidad:</strong> @ListaAsignaciones.Count</label>
+            <label><strong>Total:</strong> @TotalPuntos</label>
+        </div>
+    </div>
+</div>
+
+@code {
+    public List<AsignacionesPuntos> ListaAsignaciones { get; set; } = new List<AsignacionesPuntos>();
+    public string Filtro { get; set; } = "Estudiante";
+    public int ValorFiltro { get; set; } = 0;
+    public DateTime? FechaDesde { get; set; }
+    public DateTime? FechaHasta { get; set; }
+    public int TotalPuntos { get; set; } = 0;
+    public List<Estudiantes> ListaEstudiantes { get; set; } = new List<Estudiantes>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        ListaAsignaciones = await asignacionesPuntosService.Listar(a => a.AsignacionId > 0);
+        ListaEstudiantes = await estudiantesService.Listar(e => e.EstudianteId > 0);
+        await CalcularPuntos();
+    }
+
+    public async Task Filtrar()
+    {
+
+        Expression<Func<AsignacionesPuntos, bool>> criterio = e => e.AsignacionId > 0;
+
+        if (FechaDesde.HasValue && FechaHasta.HasValue)
+        {
+            DateTime fechaHasta = FechaHasta.Value.Date.AddDays(1).AddTicks(-1);
+            criterio = criterio.And(e => e.Fecha >= FechaDesde.Value && e.Fecha <= fechaHasta);
+        }
+        else if (FechaDesde.HasValue)
+        {
+            criterio = criterio.And(e => e.Fecha >= FechaDesde.Value);
+        }
+        else if (FechaHasta.HasValue)
+        {
+            var fechaHasta = FechaHasta.Value.Date.AddDays(1).AddTicks(-1);
+            criterio = criterio.And(e => e.Fecha <= fechaHasta);
+        }
+
+        if (ValorFiltro != 0)
+        {
+            criterio = criterio.And(a => a.EstudianteId == ValorFiltro);
+        }
+
+        ListaAsignaciones = await asignacionesPuntosService.Listar(criterio);
+        await CalcularPuntos();
+    }
+
+    public async Task CalcularPuntos()
+    {
+        TotalPuntos = 0;
+        foreach (var asignacion in ListaAsignaciones)
+        {
+            TotalPuntos += asignacion.TotalPuntos;
+        }
+    }
+}

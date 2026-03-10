@@ -1,0 +1,153 @@
+﻿@page "/AsignacionesPuntos/Create"
+
+@inject NavigationManager navigationManager;
+@inject AsignacionesPuntosService asignacionesPuntosService;
+@inject TiposPuntosService tiposPuntosService;
+@inject EstudiantesService estudiantesService;
+@inject ToastService toastService;
+
+
+@* Falta EditForm y DataAnnotationValidator *@
+<EditForm Model="AsignacionPuntos" FormName="crearAsignacion" OnValidSubmit="Guardar">
+    <DataAnnotationsValidator />
+
+    <div class="container">
+        <div class="card shadow-lg">
+            <div class="card-header text-center p-3">
+                <h3>Crear asignacion de puntos</h3>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label"><strong>Fecha</strong></label>
+                    <input class="form-control" type="datetime-local" @bind-value="AsignacionPuntos.Fecha" />
+                    <ValidationMessage For="(() => AsignacionPuntos.Fecha)" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label"><strong>Estudiante</strong></label>
+                    <select class="form-select" @bind="AsignacionPuntos.EstudianteId">
+                        <option value="0" disabled hidden selected>Seleccione un estudiante...</option>
+                        @foreach (var estudiante in ListaEstudiantes)
+                        {
+                            <option value="@estudiante.EstudianteId">@estudiante.Nombres</option>
+                        }
+                    </select>
+                    <ValidationMessage For="(() => AsignacionPuntos.EstudianteId)" />
+                </div>
+                <div class="border border-success rounded-3 p-3">
+                    <h3>Detalles</h3>
+
+                    @* Titulos *@
+                    <div class="row">
+                        <div class="col-3">
+                            <label class="form-label"><strong>Tipo de punto</strong></label>
+                        </div>
+                    </div>
+
+                    @* Inputs y botones *@
+                    <div class="row">
+                        <div class="col-3">
+                            <select class="form-select" @bind="DetalleAsignacion.TipoId">
+                                <option value="0" disabled hidden selected>Seleccione un tipo de punto...</option>
+                                @foreach (var tipo in ListaTiposPuntos)
+                                {
+                                    <option value="@tipo.TipoId">@tipo.Descripcion - @tipo.ValorPuntos</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-3">
+                            <button class="btn btn-primary bi bi-plus" type="button" @onclick="AgregarDetalle"> Agregar detalle</button>
+                        </div>
+                    </div>
+
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Descripcion</th>
+                                <th>Cantidad de puntos</th>
+                                <th>Icono</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var detalle in AsignacionPuntos.DetallesAsignaciones)
+                            {
+                                <tr>
+                                    <td>@ListaTiposPuntos.Find(t => t.TipoId == detalle.TipoId).Descripcion</td>
+                                    <td>@ListaTiposPuntos.Find(t => t.TipoId == detalle.TipoId).ValorPuntos</td>
+                                    <td><span class="@ListaTiposPuntos.Find(t => t.TipoId == detalle.TipoId).Icono bg-@ListaTiposPuntos.Find(t => t.TipoId == detalle.TipoId).Color"></span></td>
+                                    <td>
+                                        <button class="btn btn-outline-danger bi bi-trash" type="button" @onclick="() => EliminarDetalle(detalle)"></button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                    <div class="mb-3 offset-7 p-3">
+                        <label class="form-label"><strong>Total puntos</strong></label>
+                        <input class="form-control" type="number" @bind="AsignacionPuntos.TotalPuntos" disabled/>
+                        <ValidationMessage For="(() => AsignacionPuntos.TotalPuntos)" />
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer p-3 text-center">
+                <a class="btn btn-secondary" href="/AsignacionesPuntos/Index"><span class="bi bi-arrow-left"></span> Volver</a>
+                <button class="btn btn-primary" type="submit"><span class="bi bi-floppy"></span> Crear</button>
+            </div>
+        </div>
+    </div>
+</EditForm>
+
+@code {
+    public AsignacionesPuntos AsignacionPuntos { get; set; } = new AsignacionesPuntos();
+    public DetallesAsignaciones DetalleAsignacion { get; set; } = new DetallesAsignaciones();
+    public List<Estudiantes> ListaEstudiantes { get; set; } = new List<Estudiantes>();
+    public List<TiposPuntos> ListaTiposPuntos { get; set; } = new List<TiposPuntos>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        ListaEstudiantes = await estudiantesService.Listar(e => e.EstudianteId > 0);
+        ListaTiposPuntos = await tiposPuntosService.Listar(t => t.Activo == true);
+    }
+
+    public async Task Guardar()
+    {
+        if (AsignacionPuntos.DetallesAsignaciones.Count == 0)
+        {
+            toastService.ShowWarning("Debe agregar al menos un detalle");
+            return;
+        }
+
+        bool guardado = await asignacionesPuntosService.Guardar(AsignacionPuntos);
+        if (guardado)
+        {
+            toastService.ShowSuccess("Asignacion de puntos guardada correctamente.");
+            navigationManager.NavigateTo("/AsignacionesPuntos/Index");
+        }
+        else
+        {
+            toastService.ShowError("No se pudo guardar la asignacion de puntos");
+        }
+    }
+
+    public async Task AgregarDetalle()
+    {
+        if (DetalleAsignacion.TipoId <= 0)
+        {
+            toastService.ShowWarning("Debe tener un tipo de punto valido.");
+            return;
+        }
+
+        DetalleAsignacion.AsignacionId = AsignacionPuntos.AsignacionId;
+        DetalleAsignacion.EstudianteId = AsignacionPuntos.EstudianteId;
+        DetalleAsignacion.CantidadPuntos = ListaTiposPuntos.Find(t => t.TipoId == DetalleAsignacion.TipoId).ValorPuntos;
+        AsignacionPuntos.DetallesAsignaciones.Add(DetalleAsignacion);
+        AsignacionPuntos.TotalPuntos += DetalleAsignacion.CantidadPuntos;
+        DetalleAsignacion = new DetallesAsignaciones();
+    }
+
+    public async Task EliminarDetalle(DetallesAsignaciones detalleEliminado){
+        AsignacionPuntos.DetallesAsignaciones.Remove(detalleEliminado);
+        DetalleAsignacion = detalleEliminado;
+        AsignacionPuntos.TotalPuntos -= detalleEliminado.CantidadPuntos;
+    }
+}

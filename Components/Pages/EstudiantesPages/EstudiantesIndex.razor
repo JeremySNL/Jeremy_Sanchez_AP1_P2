@@ -1,0 +1,47 @@
+﻿@page "/Estudiantes/Index"
+
+@inject NavigationManager navigationManager;
+@inject AsignacionesPuntosService asignacionesPuntosService;
+@inject EstudiantesService estudiantesService;
+
+<div class="container">
+    <div class="card shadow-lg">
+        <div class="card-header d-flex justify-content-between p-3">
+            <h3>Estudiantes</h3>
+        </div>
+        <div class="card-body">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Id</th>
+                        <th>Nombres</th>
+                        <th>Email</th>
+                        <th>Edad</th>
+                        <th>Balance de puntos</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var estudiante in ListaEstudiantes)
+                    {
+                        <tr>
+                            <td>@estudiante.EstudianteId</td>
+                            <td>@estudiante.Nombres</td>
+                            <td>@estudiante.Email</td>
+                            <td>@estudiante.Edad</td>
+                            <td>@estudiante.BalancePuntos</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@code {
+    public List<Estudiantes> ListaEstudiantes { get; set; } = new List<Estudiantes>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        ListaEstudiantes = await estudiantesService.Listar(e => e.EstudianteId > 0);
+    }
+}

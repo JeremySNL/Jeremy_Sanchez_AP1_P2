@@ -38,7 +38,7 @@ public class AsignacionesPuntosService(IDbContextFactory<Contexto> DbFactory)
         AsignacionesPuntos asignacionAntigua = await contexto.AsignacionesPuntos.Include(a => a.DetallesAsignaciones).FirstOrDefaultAsync(a => a.AsignacionId == asignacion.AsignacionId);
         if (asignacionAntigua == null) return false;
 
-        await AfectarComponentes(contexto, asignacion.DetallesAsignaciones.ToArray(), TipoOperacion.Resta);
+        await AfectarComponentes(contexto, asignacionAntigua.DetallesAsignaciones.ToArray(), TipoOperacion.Resta);
 
         asignacionAntigua.DetallesAsignaciones.Clear();
         foreach (var detalle in asignacion.DetallesAsignaciones)
@@ -83,7 +83,7 @@ public class AsignacionesPuntosService(IDbContextFactory<Contexto> DbFactory)
         AsignacionesPuntos asignacion = await contexto.AsignacionesPuntos.Include(p => p.DetallesAsignaciones).FirstOrDefaultAsync(a => a.AsignacionId == asignacionId);
         if (asignacion == null) return false;
 
-        await AfectarComponentes(contexto, asignacion.DetallesAsignaciones.ToArray(), TipoOperacion.Suma);
+        await AfectarComponentes(contexto, asignacion.DetallesAsignaciones.ToArray(), TipoOperacion.Resta);
 
         contexto.AsignacionesPuntos.Remove(asignacion);
 
